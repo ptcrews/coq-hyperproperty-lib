@@ -1,12 +1,11 @@
-Module Hyperproperty.
-
 From Coq Require Import Lists.List. Import ListNotations.
 From Coq Require Import Lists.Streams.
 From Coq Require Import Sets.Ensembles.
 From Coq Require Import Sets.Powerset.
 
-Variable program_state : Type.
-Variable dummy_state : program_state.
+Module Hyperproperties.
+
+Parameter program_state : Type.
 
 Inductive state : Type :=
   | BottomState : state
@@ -48,4 +47,4 @@ Definition prefix_set
   forall (t' : subtrace), In (subtrace) prefixes t' ->
   (exists (t : trace), In (trace) traces t /\ prefix t t').
 
-End Hyperproperty.
+End Hyperproperties.
