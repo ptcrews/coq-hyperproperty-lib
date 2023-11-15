@@ -41,9 +41,8 @@ Lemma lifting_preserves_satisfiability:
   satisfies_property s P <-> satisfies_hyperproperty s [[P]].
 Proof.
   intros s P. split; intros H.
-  - unfold lift. unfold satisfies_hyperproperty. unfold satisfies_property in H.
-    apply Definition_of_Power_set. apply H.
-  - unfold lift in H. inversion H. unfold satisfies_property. apply H0.
+  - apply Definition_of_Power_set. apply H.
+  - inversion H. apply H0.
 Qed.
 
 Inductive prefix : trace -> subtrace -> Prop :=
