@@ -36,6 +36,16 @@ Definition lift (P : property) : hyperproperty := Power_set trace P.
 
 Notation "[[ P ]]" := (lift P).
 
+Lemma lifting_preserves_satisfiability:
+  forall (s : system) (P : property),
+  satisfies_property s P <-> satisfies_hyperproperty s [[P]].
+Proof.
+  intros s P. split; intros H.
+  - unfold lift. unfold satisfies_hyperproperty. unfold satisfies_property in H.
+    apply Definition_of_Power_set. apply H.
+  - unfold lift in H. inversion H. unfold satisfies_property. apply H0.
+Qed.
+
 Inductive prefix : trace -> subtrace -> Prop :=
   | prefix_nil (t : trace) : prefix t nil
   | prefix_cons (s : state) (t : trace) (t' : subtrace) (H : prefix t t')
