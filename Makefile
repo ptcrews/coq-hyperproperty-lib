@@ -1,6 +1,4 @@
-FLAGS := -Q . VFA  -arg "-w -omega-is-deprecated,-implicit-core-hint-db"
-
-FILES := Hyperproperty.v
+FILES := Hyperproperties.v
 
 build: Makefile.coq
 	$(MAKE) -f Makefile.coq
@@ -10,7 +8,7 @@ clean::
 	$(RM) $(wildcard Makefile.coq Makefile.coq.conf) 
 
 Makefile.coq:
-	coq_makefile $(FLAGS) -o Makefile.coq $(FILES)
+	coq_makefile -f _CoqProject -o Makefile.coq $(FILES)
 
 -include Makefile.coq
 
