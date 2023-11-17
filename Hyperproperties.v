@@ -57,19 +57,19 @@ Definition prefix_set
   forall (t' : subtrace), In (subtrace) prefixes t' ->
   (exists (t : trace), In (trace) traces t /\ prefix t t').
 
-Definition safety_property (P: property) :=
-forall (t:trace), ~ In (trace) P t -> 
-( exists (m:subtrace), prefix t m /\ forall (t':trace), ( prefix t' m -> ~ In (trace) P t')) . 
+Definition safety_property (p: property) :=
+forall (t:trace), forall (t':trace), exists (m:subtrace), ~ In (trace) p t -> 
+( prefix t m /\ ( prefix t' m -> ~ In (trace) p t')) . 
 
 Definition SP := { p:property | safety_property p}.
 
-(* TODO(ep): Need a way to make this finite power set *)
 Definition Obs :=  Full_set (Ensemble subtrace).
 
-Definition safety_hyperproperty (H: hyperproperty) := 
-forall (p:property), ~ In (property) H p -> 
-(exists (m: Ensemble subtrace), In (Ensemble subtrace) Obs m /\ prefix_set p m
-/\ ( forall (p':property), prefix_set p' m -> ~ In (property) H p') ).
+(* fix this to be systems not properties *)
+Definition safety_hyperproperty (h: hyperproperty) := 
+forall (s:system), ( forall (s':system), (exists (M: Ensemble subtrace), ~ In (system) h s -> 
+ In (Ensemble subtrace) Obs M /\ prefix_set s M
+/\  prefix_set s' M -> ~ In (property) h s') ).
 
 Definition SHP := { h:hyperproperty | safety_hyperproperty h}.
 
@@ -78,9 +78,11 @@ Lemma lifting_preserves_safety:
   forall (p:property), safety_property p <-> safety_hyperproperty [[p]].
 Proof.
   intros p. split; intros H.
-  - unfold safety_hyperproperty. unfold lift. unfold safety_property in H.
-apply Definition_of_Power_set .
- 
+  - unfold safety_hyperproperty. unfold safety_property in H. intros T. intros T'. admit. 
+  - unfold safety_property. unfold safety_hyperproperty in H. intros t'. intros t.  admit. 
+
+
+(*exists (Empty_set subtrace).*)
 
   
 
