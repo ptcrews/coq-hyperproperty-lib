@@ -2,6 +2,7 @@ From Coq Require Import Lists.List. Import ListNotations.
 From Coq Require Import Lists.Streams.
 From Coq Require Import Sets.Ensembles.
 From Coq Require Import Sets.Powerset.
+From Coq Require Import Sets.Finite_sets. 
 
 Module Hyperproperties.
 
@@ -55,5 +56,34 @@ Definition prefix_set
   (prefixes : Ensemble subtrace) :=
   forall (t' : subtrace), In (subtrace) prefixes t' ->
   (exists (t : trace), In (trace) traces t /\ prefix t t').
+
+Definition safety_property (P: property) :=
+forall (t:trace), ~ In (trace) P t -> 
+( exists (m:subtrace), prefix t m /\ forall (t':trace), ( prefix t' m -> ~ In (trace) P t')) . 
+
+Definition SP := { p:property | safety_property p}.
+
+(* TODO(ep): Need a way to make this finite power set *)
+Definition Obs :=  Full_set (Ensemble subtrace).
+
+Definition safety_hyperproperty (H: hyperproperty) := 
+forall (p:property), ~ In (property) H p -> 
+(exists (m: Ensemble subtrace), In (Ensemble subtrace) Obs m /\ prefix_set p m
+/\ ( forall (p':property), prefix_set p' m -> ~ In (property) H p') ).
+
+Definition SHP := { h:hyperproperty | safety_hyperproperty h}.
+
+
+Lemma lifting_preserves_safety:
+  forall (p:property), safety_property p <-> safety_hyperproperty [[p]].
+Proof.
+  intros p. split; intros H.
+  - unfold safety_hyperproperty. unfold lift. unfold safety_property in H.
+apply Definition_of_Power_set .
+ 
+
+  
+
+
 
 End Hyperproperties.
