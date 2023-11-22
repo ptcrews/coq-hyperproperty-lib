@@ -1,4 +1,4 @@
-FILES := Hyperproperties.v
+FILES := Hyperproperties.v HyperpropertiesTest.v
 
 build: Makefile.coq
 	$(MAKE) -f Makefile.coq
