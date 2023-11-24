@@ -4,21 +4,19 @@ From Coq Require Import Sets.Ensembles.
 From Coq Require Import Sets.Powerset.
 From Coq Require Import Sets.Finite_sets. 
 
-Module Hyperproperties.
+Module Type StateTypeMod.
+  Parameter StateType: Type.
+  (* TODO(ptcrews): We probably need equality axioms here *)
+End StateTypeMod.
 
-Parameter program_state : Type.
+Module Hyperproperty (SM: (StateTypeMod)).
+Import SM.
 
-Inductive state : Type :=
-  | BottomState : state
-  | ProgramState : program_state -> state.
-
-Definition trace := Stream state.
-Definition subtrace := list state.
+Definition trace := Stream StateType.
+Definition subtrace := list StateType.
 
 Definition psi_fin := subtrace.
 Definition psi_inf := trace.
-
-CoFixpoint halt_trace : psi_inf := Cons BottomState halt_trace.
 
 (* TODO(ptcrews): Do we want these to type check as psi_inf? *)
 Definition system := Ensemble trace.
@@ -48,7 +46,7 @@ Qed.
 
 Inductive prefix : trace -> subtrace -> Prop :=
   | prefix_nil (t : trace) : prefix t nil
-  | prefix_cons (s : state) (t : trace) (t' : subtrace) (H : prefix t t')
+  | prefix_cons (s : StateType) (t : trace) (t' : subtrace) (H : prefix t t')
       : prefix (Cons s t) (s :: t').
 
 Definition prefix_set
@@ -73,19 +71,12 @@ forall (s:system), ( forall (s':system), (exists (M: Ensemble subtrace), ~ In (s
 
 Definition SHP := { h:hyperproperty | safety_hyperproperty h}.
 
-
 Lemma lifting_preserves_safety:
   forall (p:property), safety_property p <-> safety_hyperproperty [[p]].
 Proof.
   intros p. split; intros H.
   - unfold safety_hyperproperty. unfold safety_property in H. intros T. intros T'. admit. 
   - unfold safety_property. unfold safety_hyperproperty in H. intros t'. intros t.  admit. 
+  Admitted.
 
-
-(*exists (Empty_set subtrace).*)
-
-  
-
-
-
-End Hyperproperties.
+End Hyperproperty.
