@@ -87,6 +87,16 @@ Lemma not_included_gives_exists : forall (p : property) (s : system),
   ~ Included trace s p -> exists t : trace, ~ In trace p t /\ In trace s t.
 Proof. Admitted.
 
+Lemma inhabited_gives_exists: forall (U: Type) (A:Ensemble U),
+  Inhabited U A -> exists x : U, In U A x.
+Proof. Admitted.
+
+Lemma prefix_set_Singleton : forall (t : trace) (prefixes : Ensemble subtrace),
+  Inhabited subtrace prefixes /\ prefix_set (Singleton trace t) prefixes ->
+  exists p : subtrace, In subtrace prefixes p /\
+  (forall t' : trace, prefix t' p -> prefix_set (Singleton trace t') prefixes).
+Proof. Admitted.
+
 Theorem lifting_preserves_safety:
   forall (p : property), safety_property p <-> safety_hyperproperty [[p]].
 Proof.
@@ -95,21 +105,53 @@ Proof.
     rewrite <- lifting_preserves_satisfiability in *.
     unfold satisfies_property in H'. unfold not in *.
     unfold safety_property in H.
-    apply not_included_gives_exists in H'. destruct H' as [t H'']. destruct H'' as [Hp Hs].
+    apply not_included_gives_exists in H'. destruct H' as [t H''].
+    destruct H'' as [Hp Hs].
     specialize (H t). apply H in Hp. destruct Hp as [m Hp'].
     exists (Singleton subtrace m). intros s'. split.
-    + unfold prefix_set. intros p' H0. apply Singleton_inv in H0. rewrite H0 in *.
-      exists t. split.
+    + unfold prefix_set. intros p' H0. apply Singleton_inv in H0.
+      rewrite H0 in *. exists t. split.
       ++ apply Hs.
       ++ destruct (Hp' t). apply H1.
     + intros Hpset. rewrite Rewrite_In_satisfies_hyperproperty.
       rewrite <- lifting_preserves_satisfiability.
       unfold satisfies_property. unfold prefix_set in Hpset. destruct (Hpset m).
       ++ apply In_singleton.
-      ++ intros contra. unfold Included in contra. specialize (contra x). destruct H0 as [H0 H0'].
+      ++ intros contra. unfold Included in contra. specialize (contra x).
+         destruct H0 as [H0 H0'].
          apply contra in H0. specialize (Hp' x). destruct Hp' as [Hp' Hp''].
          apply Hp'' in H0'. contradiction.
-  - admit.
+  - intros t H'. unfold safety_hyperproperty in H.
+    destruct (H (Singleton trace t)).
+    + intros contra. rewrite Rewrite_In_satisfies_hyperproperty in contra.
+      rewrite <- lifting_preserves_satisfiability in contra.
+      unfold satisfies_property in contra.
+      unfold not in H'. unfold Included in contra. specialize (contra t).
+      apply H' in contra.
+      ++ apply contra.
+      ++ apply In_singleton.
+    + assert (Hinhabited: Inhabited subtrace x
+                          /\ prefix_set (Singleton trace t) x). {
+        admit.
+      }
+      apply prefix_set_Singleton in Hinhabited.
+      destruct Hinhabited as [x' Hinhabited].
+      destruct Hinhabited as [Hinhabited Hprefix_set].
+      exists x'. intros t'. split.
+      ++ destruct (H0 (Singleton trace t')) as [Ht' _].
+         specialize (Ht' x'). apply Ht' in Hinhabited.
+         destruct Hinhabited as [t0 Hinhabited _].
+         destruct Hinhabited. apply Singleton_inv in H1. rewrite H1 in *.
+         apply H2.
+      ++ intros Hprefix. destruct (H0 (Singleton trace t')) as [_ Ht'].
+         rewrite Rewrite_In_satisfies_hyperproperty in Ht'.
+         rewrite <- lifting_preserves_satisfiability in Ht'.
+         rewrite <- Rewrite_Included_satisfies_property in Ht'.
+         intros contra.
+         destruct Ht'.
+         +++ apply Hprefix_set. apply Hprefix.
+         +++ unfold Included. intros. apply Singleton_inv in H1. subst x0.
+             apply contra.
 Admitted.
 
 End Hyperproperty.
