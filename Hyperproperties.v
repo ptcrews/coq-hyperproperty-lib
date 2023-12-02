@@ -5,6 +5,7 @@ From Coq Require Import Sets.Powerset.
 From Coq Require Import Sets.Finite_sets.
 From Coq Require Import Sets.Constructive_sets.
 From Coq Require Import Logic.Classical_Prop.
+From Coq Require Import Logic.Classical_Pred_Type.
 
 
 Module Type StateTypeMod.
@@ -85,9 +86,17 @@ Definition SP := { p:property | safety_property p}.
 (* The set of all Safety Hyperproperties *)
 Definition SHP := { h:hyperproperty | safety_hyperproperty h}.
 
+
+
+
+
 Lemma not_included_gives_exists : forall (p : property) (s : system),
   ~ Included trace s p -> exists t : trace, ~ In trace p t /\ In trace s t.
-Proof. Admitted.
+Proof. intros p s H. unfold Included in H. apply not_all_ex_not in H. destruct H.
+exists x.  apply imply_to_and   in H. destruct H. split.
++ apply H0.
++ apply H.
+Qed. 
 
 Lemma inhabited_gives_exists: forall (U: Type) (A:Ensemble U),
   Inhabited U A -> exists x : U, In U A x.
@@ -97,7 +106,10 @@ Lemma prefix_set_Singleton : forall (t : trace) (prefixes : Ensemble subtrace),
   Inhabited subtrace prefixes /\ prefix_set (Singleton trace t) prefixes ->
   exists p : subtrace, In subtrace prefixes p /\
   (forall t' : trace, prefix t' p -> prefix_set (Singleton trace t') prefixes).
+intros t prefixes.
 Proof. Admitted.
+
+
 
 Theorem lifting_preserves_safety:
   forall (p : property), safety_property p <-> safety_hyperproperty [[p]].
