@@ -4,6 +4,8 @@ From Coq Require Import Sets.Ensembles.
 From Coq Require Import Sets.Powerset.
 From Coq Require Import Sets.Finite_sets.
 From Coq Require Import Sets.Constructive_sets.
+From Coq Require Import Logic.Classical_Prop.
+
 
 Module Type StateTypeMod.
   Parameter StateType: Type.
@@ -132,7 +134,15 @@ Proof.
       ++ apply In_singleton.
     + assert (Hinhabited: Inhabited subtrace x
                           /\ prefix_set (Singleton trace t) x). {
-        admit.
+        destruct (H0 (Singleton trace t)) as [H0' H0''].
+        split.
+        - apply H0'' in H0'. apply NNPP. unfold not. intros.
+          destruct (H0 p) as [H2 H2']. destruct H2'.
+          + unfold prefix_set. intros. apply Inhabited_intro in H3.
+            apply H1 in H3. contradiction.
+          + unfold lift. unfold In. apply Definition_of_Power_set.
+            unfold Included. intros. apply H3.
+        - apply H0'.
       }
       apply prefix_set_Singleton in Hinhabited.
       destruct Hinhabited as [x' Hinhabited].
@@ -152,6 +162,6 @@ Proof.
          +++ apply Hprefix_set. apply Hprefix.
          +++ unfold Included. intros. apply Singleton_inv in H1. subst x0.
              apply contra.
-Admitted.
+Qed.
 
 End Hyperproperty.
