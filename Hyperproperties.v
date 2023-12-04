@@ -100,43 +100,94 @@ exists x.  apply imply_to_and   in H. destruct H. split.
 + apply H.
 Qed.
 
-Fixpoint max_prefix (prefix: set subtrace) : option subtrace :=
+Fixpoint max_prefix (prefix: set subtrace) : subtrace :=
   match prefix with
-  | nil => None
+  | nil => []
   | p :: prefix =>
-      match max_prefix prefix with
-      | None => Some p
-      | Some p' => if (length p) <=? (length p') then Some p' else Some p
-      end
+      let p' := max_prefix prefix in
+        if (length p') <=? (length p) then p else p'
   end.
 
-Lemma non_empty_gives_max_prefix: forall (prefixes : set subtrace),
-  prefixes <> (empty_set subtrace) ->
-  exists p: subtrace, max_prefix prefixes = Some p.
+Lemma non_empty_gives_element: forall (prefixes: set subtrace) (p: subtrace),
+  prefixes <> empty_set subtrace -> set_In (max_prefix prefixes) prefixes.
 Proof.
-  intros. destruct prefixes.
-  - contradiction.
-  - destruct (max_prefix (s::prefixes)) eqn:H'.
-    + exists s0. reflexivity.
-    + inversion H'. destruct (max_prefix prefixes).
-      ++ destruct (length s <=? length s0); inversion H1.
-      ++ inversion H1.
+  intros prefixes. induction prefixes.
+  - intros. unfold empty_set in H. contradiction.
+  - intros. simpl. destruct (length (max_prefix prefixes) <=? length a) eqn:Hsz.
+    + left. reflexivity.
+    + destruct prefixes.
+      ++ inversion Hsz.
+      ++ right. apply IHprefixes. apply p. unfold empty_set. unfold not. intros.
+         inversion H0.
 Qed.
 
-Lemma max_prefix_gives_element: forall (prefixes: set subtrace) (p: subtrace),
-  max_prefix prefixes = Some p -> set_In p prefixes.
+Lemma max_prefix_longest_element: forall (prefixes: set subtrace) (p p': subtrace),
+  set_In p' prefixes -> length p' <= length (max_prefix prefixes).
 Proof.
-  intros. induction prefixes.
-  - inversion H.
-  - destruct (list_eq_dec _ eqb) with p a as [H1|H2]; try apply eqb_eq.
-    + rewrite H1 in *. simpl. left. reflexivity.
-    + simpl. right. apply IHprefixes. simpl in H.
-      assert (Hneq: Some a <> Some p). { congruence. }
-      destruct (max_prefix prefixes).
-      ++ destruct (length a <=? length s).
-         +++ apply H.
-         +++ contradiction.
-      ++ contradiction.
+  intros prefixes. induction prefixes.
+  - intros. inversion H.
+  - intros. simpl. destruct (length (max_prefix prefixes) <=? length a) eqn:Hlen.
+    + apply leb_complete in Hlen. inversion H.
+      ++ subst a. apply Nat.le_refl.
+      ++ apply Nat.le_trans with (m:=(length (max_prefix prefixes))).
+         apply IHprefixes. apply p. apply H0. apply Hlen.
+    + apply Nat.leb_gt in Hlen. inversion H. 
+      ++ subst a. apply Nat.lt_le_incl. apply Hlen.
+      ++ apply IHprefixes. apply p. apply H0.
+Qed.
+
+Lemma list_head_iff: forall (p p': subtrace) (a: StateType),
+  a::p = a::p' <-> p = p'.
+Proof.
+  intros. split.
+  - intros. generalize dependent p'. induction p.
+    + intros. injection H. intros. apply H0.
+    + intros. destruct p'.
+      ++ injection H. intros. inversion H0.
+      ++ destruct (eqb a0 s) eqn:Heqb; injection H; intros; subst s; f_equal; apply H0.
+  - intros. generalize dependent p'. induction p.
+    + intros. rewrite H. reflexivity.
+    + intros. f_equal. apply H.
+Qed.
+
+Lemma prefix_is_iterative: forall (t: trace) (p p': subtrace),
+  prefix t (p ++ p') -> prefix t p.
+Proof.
+  intros. generalize dependent t. induction p.
+  - intros. apply prefix_nil.
+  - intros. inversion H. subst s t' t. apply prefix_cons. apply IHp. apply H2.
+Qed.
+
+Lemma firstn_equal_longest_prefix: forall (t: trace) (p p': subtrace),
+  prefix t p /\ prefix t p' /\ length p' <= length p -> firstn (length p') p = p'.
+Proof.
+  intros t p p' [H0 [H1 H2] ]. generalize dependent p. generalize dependent t.
+  induction p'.
+  - intros. simpl. reflexivity.
+  - intros. simpl. destruct p.
+    + inversion H2.
+    + destruct t. inversion H1. subst t' s0 t0 s1. inversion H0. subst s0 t0 t' a.
+      f_equal. apply (IHp' t).
+      ++ apply H3.
+      ++ apply H4.
+      ++ simpl in H2. apply le_S_n. apply H2.
+Qed.
+
+Lemma longest_prefix_implies_prefix: forall (t t': trace) (p p': subtrace),
+  prefix t p /\ prefix t p' /\ length p' <= length p /\ prefix t' p -> prefix t' p'.
+Proof.
+  intros t t' p p' [ H1 [H2 [H3 H4] ] ].
+  generalize dependent t. generalize dependent t'.
+  generalize dependent p. induction p'.
+  - intros. apply prefix_nil.
+  - intros. destruct t'. inversion H4.
+    + subst p t0. inversion H2. inversion H3.
+    + subst s0 t0 p. inversion H2. subst s0 t'1 t. inversion H1. subst s0 t0 s.
+      apply prefix_cons. apply IHp' with (p:=t'0) (t:=t).
+      ++ simpl. simpl in H3. apply le_S_n. apply H3.
+      ++ subst t'1. apply H6.
+      ++ subst t'1. apply H0.
+      ++ subst t'1. apply H5.
 Qed.
 
 Lemma prefix_set_Singleton : forall (t : trace) (prefixes : set subtrace),
@@ -144,14 +195,25 @@ Lemma prefix_set_Singleton : forall (t : trace) (prefixes : set subtrace),
   exists p : subtrace, set_In p prefixes /\
   (forall t' : trace, prefix t' p -> prefix_set (Singleton trace t') prefixes).
 Proof.
-intros t prefixes H. destruct H as [H H']. unfold prefix_set in H'.
-apply non_empty_gives_max_prefix in H. destruct H as [p H1]. exists p.
-split.
-- apply max_prefix_gives_element. apply H1.
-- intros. unfold prefix_set. intros. exists t'. split.
-  + apply In_singleton.
-  + admit.
-Admitted.
+intros t prefixes [H1 H2].
+unfold prefix_set in H2. apply non_empty_gives_element in H1.
+- exists (max_prefix prefixes). split.
+  + apply H1.
+  + intros. unfold prefix_set. intros. exists t'. split.
+    ++ apply In_singleton.
+    ++ apply (longest_prefix_implies_prefix t t' (max_prefix prefixes) p). repeat split.
+       +++ destruct (H2 (max_prefix prefixes)).
+           ++++ apply H1.
+           ++++ inversion H3. inversion H4. subst x. apply H5.
+       +++ destruct (H2 p).
+           ++++ apply H0.
+           ++++ inversion H3. inversion H4. subst x. apply H5.
+       +++ apply max_prefix_longest_element. apply p. apply H0.
+       +++ apply H.
+- destruct prefixes.
+  + unfold empty_set in H1. contradiction.
+  + apply s.
+Qed.
 
 Theorem lifting_preserves_safety:
   forall (p : property), safety_property p <-> safety_hyperproperty [[p]].
