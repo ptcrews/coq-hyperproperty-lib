@@ -280,4 +280,46 @@ Proof.
              apply contra.
 Qed.
 
+
+Definition liveness_property (p:property):=
+forall (t:subtrace), exists (t':trace), prefix t' t /\ In (trace)  p t'.
+
+Definition liveness_hyperproperty (hp: hyperproperty) :=
+forall (m : Obs), exists (s:system), prefix_set s m /\ In (system)  hp s.
+
+Lemma liveness_set_exists: forall (M:Obs), forall p : property, (forall t : subtrace,
+    exists t' : trace, prefix t' t /\ In trace p t') -> exists (T: system), (forall (m:subtrace),
+ (set_In m M) -> exists (x:trace), In (trace) T x  /\ prefix x m ) /\  (forall (x:trace), In (trace) T x ->In (trace) p x ).
+Proof. intros M p H.  induction M.
+- specialize (H []). exists p. split.
+++ intros m. intros H1. inversion H1.
+++ tauto.
+- exists p. split.
++ intros m. intros H1. specialize (H m). destruct H. exists x. destruct H. split.
+++ apply H0.
+++ apply H.
++ tauto. 
+Qed.
+
+
+Theorem lifting_preserves_liveness:
+  forall (p : property), liveness_property p <-> liveness_hyperproperty [[p]].
+Proof. split; intros H.
+- unfold liveness_property in H. unfold liveness_hyperproperty. intros m. pose proof liveness_set_exists. specialize (H0 m). specialize (H0 p). 
+destruct H0.
+++  apply H.
+++ exists x. destruct H0. split.
++++ unfold prefix_set. apply H0. 
++++ apply  lifting_preserves_satisfiability. unfold satisfies_property. unfold Included. apply H1.
+- unfold liveness_property. intros t. unfold liveness_hyperproperty in H. specialize (H [t]). destruct H. destruct H.
+unfold prefix_set in H. specialize (H t). destruct H. 
++ unfold set_In. unfold List.In. tauto.
++  exists x0. destruct H. split.
+++ apply H1.
+++ apply lifting_preserves_satisfiability in H0. unfold satisfies_property in H0. unfold Included in H0. 
+specialize (H0 x0). apply H0 in H. apply H.
+Qed.
+
+
+ 
 End Hyperproperty.
