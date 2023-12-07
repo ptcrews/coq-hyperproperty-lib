@@ -318,8 +318,38 @@ unfold prefix_set in H. specialize (H t). destruct H.
 ++ apply H1.
 ++ apply lifting_preserves_satisfiability in H0. unfold satisfies_property in H0. unfold Included in H0. 
 specialize (H0 x0). apply H0 in H. apply H.
+Qed. 
+
+Definition subset_closed_hyperproperty (hp:hyperproperty) :=
+ forall (s:system) (s': system),
+In (system) hp s ->  Included (trace) s' s -> In (system) hp s'.
+
+Theorem all_lifts_are_subset_close:
+forall (p:property), subset_closed_hyperproperty [[p]].
+Proof. intros p. unfold subset_closed_hyperproperty. intros. apply  lifting_preserves_satisfiability.
+apply  lifting_preserves_satisfiability in H. unfold satisfies_property. unfold Included.
+unfold Included in H0. unfold satisfies_property in H. unfold Included in H. intros x. intros H1. specialize (H0 x). 
+apply H0 in H1. specialize (H x). apply H in H1. apply H1.
+Qed.
+
+Lemma inclusion_preserves_prefix: forall (s:system) (s':system) (m: Obs),
+Included (trace) s s' /\ prefix_set s m -> prefix_set s' m.
+Proof. intros. destruct H. unfold Included in H. unfold prefix_set. intros p.
+unfold prefix_set in H0. specialize (H0 p). intros H1. apply H0 in H1.
+destruct H1. exists x. split.
+- destruct H1. apply H in H1. apply H1.
+- destruct H1. apply H2.
+Qed.
+
+(* This proves inclusion but not strict inclusion *)
+Theorem all_safety_hyperproperties_are_subset_closed:
+forall (hp: hyperproperty), safety_hyperproperty hp -> subset_closed_hyperproperty hp.
+Proof.  intros. unfold safety_hyperproperty in H. unfold subset_closed_hyperproperty. apply NNPP. intros H1. 
+apply not_all_ex_not in H1. destruct H1. apply not_all_ex_not in H0. destruct H0. destruct H0.
+intros. apply NNPP. intros H2. specialize (H x0). apply H in H2. destruct H2. specialize (H2 x). destruct H2.
+pose proof conj H1 H2. apply inclusion_preserves_prefix in H4. apply H3 in H4. contradiction.
 Qed.
 
 
- 
+
 End Hyperproperty.
