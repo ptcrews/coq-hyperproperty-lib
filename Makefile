@@ -1,4 +1,4 @@
-FILES := Hyperproperties.v CrashProperty.v
+FILES := Hyperproperties.v CrashProperty.v GuaranteedService.v
 
 build: Makefile.coq
 	$(MAKE) -f Makefile.coq
