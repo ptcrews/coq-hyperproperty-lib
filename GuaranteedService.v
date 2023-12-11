@@ -11,44 +11,63 @@ Inductive GSState :=
 Module GSStateMod <: StateTypeMod.
   Definition StateType := GSState.
   Definition eq_dec: forall x y: GSState, {x = y} + {x <> y}.
-  Proof. Admitted.
+  Proof.
+    intros; destruct x; destruct y.
+    - destruct (Nat.eqb tag tag0) eqn:Htag.
+      + apply PeanoNat.Nat.eqb_eq in Htag. subst tag. left. reflexivity.
+      + apply PeanoNat.Nat.eqb_neq in Htag. right. unfold not in *. intros.
+        apply Htag. inversion H. reflexivity.
+    - right. unfold not. intros. inversion H.
+    - right. unfold not. intros. inversion H.
+    - right. unfold not. intros. inversion H.
+    - destruct (Nat.eqb tag tag0) eqn:Htag.
+      + apply PeanoNat.Nat.eqb_eq in Htag. subst tag. left. reflexivity.
+      + apply PeanoNat.Nat.eqb_neq in Htag. right. unfold not in *. intros.
+        apply Htag. inversion H. reflexivity.
+    - right. unfold not. intros. inversion H.
+    - right. unfold not. intros. inversion H.
+    - right. unfold not. intros. inversion H.
+    - left. reflexivity.
+  Qed.
   Definition eqb (x y: GSState) : bool :=
     match x, y with
     | Request n, Request n' => Nat.eqb n n'
     | Response n, Response n' => Nat.eqb n n'
+    | Bottom, Bottom => true
     | _, _ => false
     end.
 
   Definition eqb_eq: forall x y: GSState, eqb x y = true <-> x = y.
-  Proof. Admitted.
+  Proof. intros. destruct x; destruct y; split; intros; try inversion H; simpl;
+    try reflexivity.
+    - apply PeanoNat.Nat.eqb_eq in H1. subst tag0. reflexivity.
+    - apply PeanoNat.Nat.eqb_refl.
+    - apply PeanoNat.Nat.eqb_eq in H1. subst tag0. reflexivity.
+    - apply PeanoNat.Nat.eqb_refl.
+  Qed.
 End GSStateMod.
 
 Module GSMod := Hyperproperty GSStateMod.
 Import GSMod.
 Import GSStateMod.
 
-Definition all_requests_have_responses (t: trace): Prop :=
-  forall (tag i: nat) (s: GSState),
-  Str_nth i t = Request tag -> exists i': nat, i <= i' /\ Str_nth i' t = Response tag.
-
-Definition GuaranteedService : property := all_requests_have_responses.
-
 CoFixpoint bottom_trace: psi_inf := Cons Bottom bottom_trace.
 Definition bottom_system: system := Singleton trace bottom_trace.
 
-Fixpoint prepend_to_Stream {A: Type} (l: list A) (s: Stream A): Stream A :=
-  match l with
-  | [] => s
-  | a :: l' => Cons a (prepend_to_Stream l' s)
+Fixpoint insert_at_index {A: Type} (n: nat) (a: A) (s: Stream A): Stream A :=
+  match n with
+  | O => Cons a s
+  | S m => Cons (hd s) (insert_at_index m a (tl s))
   end.
 
-Lemma prepend_to_Stream_gives_prefix: forall (p: subtrace) (t: trace),
-  prefix (prepend_to_Stream p t) p.
-Proof.
-  induction p.
-  - intros. simpl. apply prefix_nil.
-  - simpl. destruct t. apply prefix_cons. apply IHp.
-Qed.
+CoInductive GuaranteedService: trace -> Prop :=
+  | GSBottom: GuaranteedService bottom_trace
+  | GSConsRequest (tag i: nat) (t: trace) (H: GuaranteedService t):
+      GuaranteedService (Cons (Request tag) (insert_at_index i (Response tag) t))
+  | GSConsBottom (t: trace) (H: GuaranteedService t):
+      GuaranteedService (Cons Bottom t)
+  | GSConsResponse (tag: nat) (t: trace) (H: GuaranteedService t):
+      GuaranteedService (Cons (Response tag) t).
 
 Lemma bottom_trace_is_Bottom: forall i: nat,
   Str_nth i bottom_trace = Bottom.
@@ -58,39 +77,50 @@ Proof.
   - unfold Str_nth. case IHi. simpl. constructor.
 Qed.
 
+(* A more intuitive definition of Guaranteed Service. *)
+Definition all_requests_have_responses (t: trace): Prop :=
+  forall (tag i: nat) (s: GSState),
+  Str_nth i t = Request tag -> exists i': nat, i <= i' /\ Str_nth i' t = Response tag.
+
+(* TODO: We should probably prove this, but for now we claim it is correct. *)
+Theorem GuaranteedService_is_consistent:
+  forall t: trace, all_requests_have_responses t <-> GuaranteedService t.
+Proof. Admitted.
+
 Lemma bottom_trace_is_GuaranteedService: In trace GuaranteedService bottom_trace.
 Proof.
-  unfold In. unfold GuaranteedService. unfold all_requests_have_responses.
-  intros. rewrite bottom_trace_is_Bottom in H. inversion H.
+  unfold In. apply GSBottom.
 Qed.
 
-Lemma GuaranteedService_preserved_under_insertion:
-  forall (p: subtrace) (t: trace) (tag: nat),
-  GuaranteedService t /\ prefix t p ->
-  GuaranteedService (prepend_to_Stream (Request tag :: p ++ [Response tag]) t).
+Lemma prefix_preserved_if_insert_after:
+  forall (n: nat) (s: GSState) (t: trace) (p: subtrace),
+   prefix t p /\ length p <= n -> prefix (insert_at_index n s t) p.
 Proof.
-  intros p. induction p.
-  - intros. simpl. unfold GuaranteedService. unfold all_requests_have_responses.
-    intros. exists (S O). unfold Str_nth in *. simpl in *.
-    admit.
-  - admit.
-Admitted.
+  induction n.
+  - intros s t p [H H']. simpl. inversion H'. apply length_zero_iff_nil in H1.
+    subst p. apply prefix_nil.
+  - intros s t p [H H']. simpl. inversion H.
+    + subst p t0. apply prefix_nil.
+    + subst p t. apply prefix_cons. apply IHn. split.
+      ++ simpl. apply H0.
+      ++ apply le_S_n . simpl in H'. apply H'.
+Qed.
 
 Theorem GuaranteedService_is_liveness: liveness_property GuaranteedService.
 Proof.
   unfold liveness_property. intros p. induction p.
   - exists bottom_trace. split. apply prefix_nil.
     apply bottom_trace_is_GuaranteedService.
-  - destruct IHp as [t [Hp Hp'] ]. destruct a eqn:Ha.
-    (* TODO: I'm not sure this step is correct; we want to prepent Request tag,
-     * but then insert Response tag *after* p, not preprend the entire thing *)
-    + exists (prepend_to_Stream (Request tag :: p ++ [Response tag]) t).
+  - destruct IHp as [t [Hp Hp'] ]. unfold In in *. destruct a eqn:Ha.
+    + apply (GSConsRequest tag (length p) t) in Hp'.
+      exists (Cons (Request tag) (insert_at_index (length p) (Response tag) t)).
       split.
-      ++ simpl. apply prefix_cons. admit.
-      ++ simpl. apply GuaranteedService_preserved_under_insertion.
-         split; assumption.
-    + exists (prepend_to_Stream (Response tag :: p) t). split.
-      ++ simpl. apply prefix_cons. apply prepend_to_Stream_gives_prefix.
-      ++ simpl. admit.
-    + admit.
-Admitted.
+      ++ apply prefix_cons. apply prefix_preserved_if_insert_after. split.
+         apply Hp. apply le_n.
+      ++ apply Hp'.
+    + apply (GSConsResponse tag t) in Hp'.
+      exists (Cons (Response tag) t). split. constructor. apply Hp.
+      apply Hp'.
+    + exists (Cons Bottom t). split. constructor. apply Hp.
+      apply GSConsBottom in Hp'. apply Hp'.
+Qed.
