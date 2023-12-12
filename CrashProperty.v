@@ -128,20 +128,6 @@ Proof.
   - intros. simpl. destruct t. apply prefix_cons. simpl. apply IHn.
 Qed.
 
-Lemma head_is_prefix: forall (s: trace), 
-prefix s [hd s].
-Proof. Admitted.
-
-
-
-Lemma combine_prefix: forall (s:trace) (x:subtrace),
-prefix (tl s) x /\  prefix s [hd s] -> prefix s ([hd s] ++ x).
-Proof.  intros s x H. destruct H. inversion H.
-++ apply H0.
-++ inversion H0. symmetry in H5. rewrite H5 in *. simpl in H1. simpl in H. simpl in H0. simpl. symmetry in H3.
- rewrite H3 in *.  symmetry in H1. rewrite H1 in *. apply NNPP. intros H7. simpl in H. 
-Admitted.
-
 
 (* TODO(ptcrews): This is equivalent to assuming functional extensionality. We
  * can likely omit it, but would have to rework Ensemble to use EqSt/NeqSt
@@ -150,20 +136,29 @@ Lemma NeqSt_eq_neq: forall (t t': trace),
   NeqSt t t' <-> t <> t'.
 Proof. Admitted.
 
-
 Lemma neqst_trace_gives_prefix: forall (t t': trace),
   NeqSt t t' <-> exists (p: subtrace), ~prefix t p /\ prefix t' p.
-Proof. intros t t'. split; intros H.
-- pose proof H. induction H . exists [hd s']. split.
-++ unfold not. intros H1. inversion H1.  symmetry in H2. rewrite H2 in *.
-symmetry in H3. rewrite H3 in *. contradiction.
-++ pose proof head_is_prefix. specialize (H1 s').  apply H1.
-++ pose proof H. apply IHNeqSt in H. destruct H. exists ( [hd s'] ++ x). inversion H. split. 
-+++ apply NNPP. intros H4. apply NNPP in H4. inversion H4. symmetry in H6.
- rewrite H5 in *. rewrite H6 in *. tauto.
-+++ pose proof  head_is_prefix . specialize (H4 s'). 
- pose proof conj H3 H4. apply combine_prefix. apply H5.
-- destruct H.  apply NeqSt_eq_neq. intros H1. destruct H. rewrite H1 in *. contradiction.
+Proof.
+  split.
+  - intros. induction H.
+    + exists ([hd s']).
+      split.
+      ++ unfold not. intros. inversion H0.
+         subst s. simpl in H. contradiction.
+      ++ destruct s'. apply prefix_cons. apply prefix_nil.
+    + destruct s. destruct s'.
+      destruct IHNeqSt as [p [IHNeqSt IHNeqSt'] ].
+      exists (s1 :: p).
+      split.
+      ++ simpl in *. unfold not. intros contra.
+         unfold not in IHNeqSt.
+         apply IHNeqSt.
+         inversion contra.
+         subst s2 s0 s1 t'. apply H1.
+      ++ apply prefix_cons. simpl in *. apply IHNeqSt'.
+  - intros. destruct H as [p [H H'] ].
+    apply NeqSt_eq_neq. unfold not. intros. subst t'.
+   apply H in H'. contradiction.
 Qed.
 
 Lemma neq_singleton_iff_neq_element: forall (t t': trace),
