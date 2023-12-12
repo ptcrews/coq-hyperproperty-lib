@@ -5,7 +5,9 @@ From Coq Require Import Sets.Powerset.
 From Coq Require Import Lists.ListSet.
 From Coq Require Import Logic.Classical_Pred_Type.
 From Coq Require Import Logic.Classical_Prop.
+From Coq Require Import Sets.Finite_sets.
 From Hyperproperties Require Import Hyperproperties.
+
 
 Inductive State : Type :=
   | CrashState : State
@@ -126,27 +128,20 @@ Proof.
   - intros. simpl. destruct t. apply prefix_cons. simpl. apply IHn.
 Qed.
 
-Lemma prefix_equals_str_nth: forall (n: nat) (s: subtrace) (t: trace),
-  prefix t s /\ n <= length s /\ s <> [] -> nth_error s n = Some (Str_nth n t).
-Proof.
-  induction n.
-  - intros s t [H [H' H''] ]. simpl. destruct s. contradiction.
-    destruct t. inversion H. unfold Str_nth. simpl. reflexivity.
-  - intros s t [H [H' H''] ].
-    destruct s; try contradiction.
-    simpl. apply IHn. repeat split.
-    + destruct t. inversion H. simpl. apply H1.
-    + simpl in H'. apply le_S_n. apply H'.
-    + admit.
+Lemma head_is_prefix: forall (s: trace), 
+prefix s [hd s].
+Proof. Admitted.
+
+
+
+Lemma combine_prefix: forall (s:trace) (x:subtrace),
+prefix (tl s) x /\  prefix s [hd s] -> prefix s ([hd s] ++ x).
+Proof.  intros s x H. destruct H. inversion H.
+++ apply H0.
+++ inversion H0. symmetry in H5. rewrite H5 in *. simpl in H1. simpl in H. simpl in H0. simpl. symmetry in H3.
+ rewrite H3 in *.  symmetry in H1. rewrite H1 in *. apply NNPP. intros H7. simpl in H. 
 Admitted.
 
-Lemma neqst_trace_gives_prefix: forall (t t': trace),
-  NeqSt t t' <-> exists (p: subtrace), ~prefix t p /\ prefix t' p.
-Proof. Admitted.
-
-Lemma neq_singleton_iff_neq_element: forall (t t': trace),
-  ~ In trace (Singleton trace t) t' <-> t <> t'.
-Proof. Admitted.
 
 (* TODO(ptcrews): This is equivalent to assuming functional extensionality. We
  * can likely omit it, but would have to rework Ensemble to use EqSt/NeqSt
@@ -154,6 +149,31 @@ Proof. Admitted.
 Lemma NeqSt_eq_neq: forall (t t': trace),
   NeqSt t t' <-> t <> t'.
 Proof. Admitted.
+
+
+Lemma neqst_trace_gives_prefix: forall (t t': trace),
+  NeqSt t t' <-> exists (p: subtrace), ~prefix t p /\ prefix t' p.
+Proof. intros t t'. split; intros H.
+- pose proof H. induction H . exists [hd s']. split.
+++ unfold not. intros H1. inversion H1.  symmetry in H2. rewrite H2 in *.
+symmetry in H3. rewrite H3 in *. contradiction.
+++ pose proof head_is_prefix. specialize (H1 s').  apply H1.
+++ pose proof H. apply IHNeqSt in H. destruct H. exists ( [hd s'] ++ x). inversion H. split. 
++++ apply NNPP. intros H4. apply NNPP in H4. inversion H4. symmetry in H6.
+ rewrite H5 in *. rewrite H6 in *. tauto.
++++ pose proof  head_is_prefix . specialize (H4 s'). 
+ pose proof conj H3 H4. apply combine_prefix. apply H5.
+- destruct H.  apply NeqSt_eq_neq. intros H1. destruct H. rewrite H1 in *. contradiction.
+Qed.
+
+Lemma neq_singleton_iff_neq_element: forall (t t': trace),
+  ~ In trace (Singleton trace t) t' <-> t <> t'.
+Proof. intros t t'. split.
++ intros H. unfold not. intros H1. apply H. rewrite H1 in *. apply In_singleton.
++ intros H. intros H1. apply H. destruct H1. contradiction. 
+Qed.
+
+
 
 Theorem crash_property_is_SP: safety_property crash_property.
 Proof. unfold safety_property. intros.
