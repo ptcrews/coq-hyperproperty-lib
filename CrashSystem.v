@@ -8,7 +8,6 @@ From Coq Require Import Logic.Classical_Prop.
 From Coq Require Import Sets.Finite_sets.
 From Hyperproperties Require Import Hyperproperties.
 
-
 Inductive State : Type :=
   | CrashState : State
   | RunningState : State.
@@ -37,14 +36,14 @@ Module CrashHyperMod := Hyperproperty CrashStateMod.
 Import CrashHyperMod.
 Import CrashStateMod.
 
-CoFixpoint halt_trace : psi_inf := Cons CrashState halt_trace.
-Example empty_system : system := Singleton trace halt_trace.
+CoFixpoint crash_trace : psi_inf := Cons CrashState crash_trace.
+Example crash_system : system := Singleton trace crash_trace.
 
-(* An example property which describes the empty program. *)
-Example crash_property : property := Singleton trace halt_trace.
+(* An example property which describes the crash program. *)
+Example crash_property : property := Singleton trace crash_trace.
 Check crash_property.
 Example crash_hyperproperty : hyperproperty :=
-  Add system (Singleton system empty_system) (Singleton trace halt_trace).
+  Add system (Singleton system crash_system) (Singleton trace crash_trace).
 
 Lemma crash_property_in_PROP : In property PROP crash_property.
 Proof. constructor. Qed.
@@ -52,21 +51,13 @@ Proof. constructor. Qed.
 Lemma crash_hyperproperty_in_HP : In hyperproperty HP crash_hyperproperty.
 Proof. constructor. Qed.
 
-Lemma empty_system_satisfies_crash_property :
-  satisfies_property empty_system crash_property.
+Lemma crash_system_satisfies_crash_property :
+  satisfies_property crash_system crash_property.
 Proof. intros x H. inversion H. constructor. Qed.
 
-Lemma empty_system_satisfies_crash_hyperproperty :
-  satisfies_hyperproperty empty_system crash_hyperproperty.
-Proof. constructor. apply In_singleton. Qed.
-
-Lemma crash_system_satisfies_crash_property :
-  satisfies_property empty_system crash_property.
-Proof. intros t H. apply H. Qed.
-
 Lemma crash_system_satisfies_crash_hyperproperty :
-  satisfies_hyperproperty empty_system crash_hyperproperty.
-Proof. apply Union_intror. apply In_singleton. Qed.
+  satisfies_hyperproperty crash_system crash_hyperproperty.
+Proof. constructor. apply In_singleton. Qed.
 
 Lemma crash_property_lifts_to_crash_hyperproperty :
   forall s: system, satisfies_property s crash_property <-> 
@@ -74,9 +65,9 @@ Lemma crash_property_lifts_to_crash_hyperproperty :
 Proof. intros s. apply lifting_preserves_satisfiability. Qed.
 
 Lemma crash_state_prefix_crash_trace :
-  prefix halt_trace [CrashState].
+  prefix crash_trace [CrashState].
 Proof.
-  rewrite (unfold_Stream halt_trace). repeat constructor.
+  rewrite (unfold_Stream crash_trace). repeat constructor.
 Qed.
 
 Definition eqb_eq_if: forall x y: State, eqb x y = true -> x = y.
@@ -167,8 +158,6 @@ Proof. intros t t'. split.
 + intros H. unfold not. intros H1. apply H. rewrite H1 in *. apply In_singleton.
 + intros H. intros H1. apply H. destruct H1. contradiction. 
 Qed.
-
-
 
 Theorem crash_property_is_SP: safety_property crash_property.
 Proof. unfold safety_property. intros.
