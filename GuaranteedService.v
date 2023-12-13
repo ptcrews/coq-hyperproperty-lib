@@ -85,6 +85,8 @@ Definition all_requests_have_responses (t: trace): Prop :=
 (* TODO: We should probably prove this, but for now we claim it is correct. *)
 Theorem GuaranteedService_is_consistent:
   forall t: trace, all_requests_have_responses t <-> GuaranteedService t.
+intros t. split.
++ intros H. unfold all_requests_have_responses in H. induction  tag i.
 Proof. Admitted.
 
 Lemma bottom_trace_is_GuaranteedService: In trace GuaranteedService bottom_trace.
