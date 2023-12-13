@@ -1,4 +1,4 @@
-FILES := Hyperproperties.v CrashProperty.v GuaranteedService.v ObservationalDeterminism.v
+FILES := Hyperproperties.v CrashSystem.v GuaranteedService.v ObservationalDeterminism.v
 
 build: Makefile.coq
 	$(MAKE) -f Makefile.coq
