@@ -71,11 +71,25 @@ CoInductive EqSt_pub (t t': trace) : Prop :=
   (hd t).(public) = (hd t').(public) -> EqSt_pub (tl t) (tl t') -> EqSt_pub t t'.
 
 Lemma EqSt_pub_eq_at_all_index:
-  forall (t t': trace),
-  EqSt_pub t t' <-> forall (i: nat), (Str_nth i t).(public) = (Str_nth i t').(public).
-Proof. unfold Str_nth.
+  forall (i: nat) (t t': trace),
+  EqSt_pub t t' -> (Str_nth i t).(public) = (Str_nth i t').(public).
+Proof.
+  simple induction i.
+  - intros. destruct t. destruct t'.
+    inversion H. simpl in H0. unfold Str_nth.
+    simpl. apply H0.
+  - intros. unfold Str_nth. simpl. destruct t. destruct t'.
+    simpl. apply H. apply H0.
+Qed.
 
-Admitted.
+Lemma eq_at_all_index_EqSt_pub:
+  forall (t t': trace),
+  (forall (i: nat), (Str_nth i t).(public) = (Str_nth i t').(public)) -> EqSt_pub t t'.
+Proof.
+  cofix EqSt_pub; intros; constructor; [ clear EqSt_pub | try (apply EqSt_pub; clear EqSt_pub)].
+  - apply (H 0).
+  - intros. apply (H (S i)).
+Qed.
 
 Definition ObservationalDeterminism (s: system): Prop :=
   forall (t t': trace),
@@ -104,7 +118,11 @@ Fixpoint build_prefix (i: nat) (t: trace): subtrace :=
 Lemma build_prefix_consistent:
   forall (i: nat) (t: trace),
   prefix t (build_prefix i t).
-Proof. Admitted.
+Proof.
+  induction i.
+  - intros. simpl. apply prefix_nil.
+  - intros. simpl. destruct t. apply prefix_cons. simpl. apply IHi.
+Qed.
 
 Lemma build_prefix_length:
   forall (i: nat) (t: trace),
@@ -156,8 +174,8 @@ Proof.
              apply H0 in H''. contradiction.
          +++ inversion Hexistst11. inversion Hexistst11'.
              subst s0 t'0 s1 t'1. simpl. apply H''.
-    + apply eqst_pub in e; try apply H2'. rewrite EqSt_pub_eq_at_all_index in e.
-      specialize (e i). pose proof prefix_implies_equals.
+    + apply eqst_pub in e; try apply H2'. apply EqSt_pub_eq_at_all_index with (i := i) in e.
+      pose proof prefix_implies_equals.
       assert (Hteqt1: Str_nth i t = Str_nth i t1).
       { apply prefix_implies_equals with (p:= (build_prefix i t)).
         repeat split. apply build_prefix_consistent. assumption.
