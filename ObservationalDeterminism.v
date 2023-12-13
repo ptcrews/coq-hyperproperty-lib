@@ -73,7 +73,9 @@ CoInductive EqSt_pub (t t': trace) : Prop :=
 Lemma EqSt_pub_eq_at_all_index:
   forall (t t': trace),
   EqSt_pub t t' <-> forall (i: nat), (Str_nth i t).(public) = (Str_nth i t').(public).
-Proof. Admitted.
+Proof. unfold Str_nth.
+
+Admitted.
 
 Definition ObservationalDeterminism (s: system): Prop :=
   forall (t t': trace),
@@ -83,12 +85,15 @@ Definition ObservationalDeterminism (s: system): Prop :=
 Lemma neq_Empty_set_gives_element:
   forall {A: Type} (s: Ensemble A),
   s <> Empty_set A -> exists a: A, In A s a.
-Proof. Admitted.
+  Proof. Admitted.
 
 Lemma not_EqSt_pub_gives_index:
   forall (t t': trace), ~ EqSt_pub t t' -> exists (i: nat),
   (Str_nth i t).(public) <> (Str_nth i t').(public).
-Proof. Admitted.
+Proof. intros. pose proof H.   rewrite EqSt_pub_eq_at_all_index in H.
+ apply  not_all_ex_not in H. destruct H. exists x. apply H.
+Qed.
+
 
 Fixpoint build_prefix (i: nat) (t: trace): subtrace :=
   match i with
