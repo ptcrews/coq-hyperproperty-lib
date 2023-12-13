@@ -126,7 +126,8 @@ Lemma max_prefix_longest_element: forall (prefixes: set subtrace) (p p': subtrac
 Proof.
   intros prefixes. induction prefixes.
   - intros. inversion H.
-  - intros. simpl. destruct (length (max_prefix prefixes) <=? length a) eqn:Hlen.
+  - intros. simpl.
+    destruct (length (max_prefix prefixes) <=? length a) eqn:Hlen.
     + apply leb_complete in Hlen. inversion H.
       ++ subst a. apply Nat.le_refl.
       ++ apply Nat.le_trans with (m:=(length (max_prefix prefixes))).
@@ -144,7 +145,8 @@ Proof.
     + intros. injection H. intros. apply H0.
     + intros. destruct p'.
       ++ injection H. intros. inversion H0.
-      ++ destruct (eqb a0 s) eqn:Heqb; injection H; intros; subst s; f_equal; apply H0.
+      ++ destruct (eqb a0 s) eqn:Heqb; injection H; intros; subst s; f_equal;
+         apply H0.
   - intros. generalize dependent p'. induction p.
     + intros. rewrite H. reflexivity.
     + intros. f_equal. apply H.
@@ -166,8 +168,8 @@ Proof.
   - intros. simpl. reflexivity.
   - intros. simpl. destruct p.
     + inversion H2.
-    + destruct t. inversion H1. subst t' s0 t0 s1. inversion H0. subst s0 t0 t' a.
-      f_equal. apply (IHp' t).
+    + destruct t. inversion H1. subst t' s0 t0 s1. inversion H0.
+      subst s0 t0 t' a. f_equal. apply (IHp' t).
       ++ apply H3.
       ++ apply H4.
       ++ simpl in H2. apply le_S_n. apply H2.
@@ -201,7 +203,8 @@ unfold prefix_set in H2. apply non_empty_gives_element in H1.
   + apply H1.
   + intros. unfold prefix_set. intros. exists t'. split.
     ++ apply In_singleton.
-    ++ apply (longest_prefix_implies_prefix t t' (max_prefix prefixes) p). repeat split.
+    ++ apply (longest_prefix_implies_prefix t t' (max_prefix prefixes) p).
+       repeat split.
        +++ destruct (H2 (max_prefix prefixes)).
            ++++ apply H1.
            ++++ inversion H3. inversion H4. subst x. apply H5.
@@ -215,6 +218,7 @@ unfold prefix_set in H2. apply non_empty_gives_element in H1.
   + apply s.
 Qed.
 
+(* Proposition 1 in the Hyperproperties paper. *)
 Theorem lifting_preserves_safety:
   forall (p : property), safety_property p <-> safety_hyperproperty [[p]].
 Proof.
@@ -255,7 +259,8 @@ Proof.
         split.
         - apply H0'' in H0'. apply NNPP. unfold not. intros.
           destruct (H0 p) as [H2 H2']. destruct H2'.
-          + unfold prefix_set. intros. apply NNPP in H1. rewrite H1 in H3. inversion H3.
+          + unfold prefix_set. intros. apply NNPP in H1. rewrite H1 in H3.
+            inversion H3.
           + unfold lift. unfold In. apply Definition_of_Power_set.
             unfold Included. intros. apply H3.
         - apply H0'.
@@ -287,38 +292,49 @@ forall (t:subtrace), exists (t':trace), prefix t' t /\ In (trace)  p t'.
 Definition liveness_hyperproperty (hp: hyperproperty) :=
 forall (m : Obs), exists (s:system), prefix_set s m /\ In (system)  hp s.
 
-Lemma liveness_set_exists: forall (M:Obs), forall p : property, (forall t : subtrace,
-    exists t' : trace, prefix t' t /\ In trace p t') -> exists (T: system), (forall (m:subtrace),
- (set_In m M) -> exists (x:trace), In (trace) T x  /\ prefix x m ) /\  (forall (x:trace), In (trace) T x ->In (trace) p x ).
-Proof. intros M p H.  induction M.
-- specialize (H []). exists p. split.
-++ intros m. intros H1. inversion H1.
-++ tauto.
-- exists p. split.
-+ intros m. intros H1. specialize (H m). destruct H. exists x. destruct H. split.
-++ apply H0.
-++ apply H.
-+ tauto. 
+Lemma liveness_set_exists:
+  forall (M:Obs), forall p : property,
+  (forall t : subtrace, exists t' : trace, prefix t' t /\ In trace p t')
+    -> exists (T: system),
+      (forall (m:subtrace), (set_In m M)
+       -> exists (x:trace), In (trace) T x  /\ prefix x m)
+    /\  (forall (x:trace), In (trace) T x ->In (trace) p x).
+Proof.
+  intros M p H.  induction M.
+  - specialize (H []). exists p. split.
+    + intros m. intros H1. inversion H1.
+    + tauto.
+  - exists p. split.
+    + intros m. intros H1. specialize (H m). destruct H. exists x. destruct H.
+      split.
+      ++ apply H0.
+      ++ apply H.
+    + tauto.
 Qed.
 
-
+(* Proposition 2 in the Hyperproperties paper. *)
 Theorem lifting_preserves_liveness:
   forall (p : property), liveness_property p <-> liveness_hyperproperty [[p]].
-Proof. split; intros H.
-- unfold liveness_property in H. unfold liveness_hyperproperty. intros m. pose proof liveness_set_exists. specialize (H0 m). specialize (H0 p). 
-destruct H0.
-++  apply H.
-++ exists x. destruct H0. split.
-+++ unfold prefix_set. apply H0. 
-+++ apply  lifting_preserves_satisfiability. unfold satisfies_property. unfold Included. apply H1.
-- unfold liveness_property. intros t. unfold liveness_hyperproperty in H. specialize (H [t]). destruct H. destruct H.
-unfold prefix_set in H. specialize (H t). destruct H. 
-+ unfold set_In. unfold List.In. tauto.
-+  exists x0. destruct H. split.
-++ apply H1.
-++ apply lifting_preserves_satisfiability in H0. unfold satisfies_property in H0. unfold Included in H0. 
-specialize (H0 x0). apply H0 in H. apply H.
-Qed. 
+Proof.
+  split; intros H.
+  - unfold liveness_property in H. unfold liveness_hyperproperty. intros m.
+    pose proof liveness_set_exists. specialize (H0 m). specialize (H0 p).
+    destruct H0.
+    +  apply H.
+    + exists x. destruct H0. split.
+      ++ unfold prefix_set. apply H0. 
+      ++ apply lifting_preserves_satisfiability. unfold satisfies_property.
+         unfold Included. apply H1.
+  - unfold liveness_property. intros t. unfold liveness_hyperproperty in H.
+    specialize (H [t]). destruct H. destruct H. unfold prefix_set in H.
+    specialize (H t). destruct H.
+    + unfold set_In. unfold List.In. tauto.
+    + exists x0. destruct H. split.
+      ++ apply H1.
+      ++ apply lifting_preserves_satisfiability in H0.
+         unfold satisfies_property in H0. unfold Included in H0.
+         specialize (H0 x0). apply H0 in H. apply H.
+Qed.
 
 Definition subset_closed_hyperproperty (hp:hyperproperty) :=
  forall (s:system) (s': system),
@@ -326,30 +342,38 @@ In (system) hp s ->  Included (trace) s' s -> In (system) hp s'.
 
 Theorem all_lifts_are_subset_close:
 forall (p:property), subset_closed_hyperproperty [[p]].
-Proof. intros p. unfold subset_closed_hyperproperty. intros. apply  lifting_preserves_satisfiability.
-apply  lifting_preserves_satisfiability in H. unfold satisfies_property. unfold Included.
-unfold Included in H0. unfold satisfies_property in H. unfold Included in H. intros x. intros H1. specialize (H0 x). 
-apply H0 in H1. specialize (H x). apply H in H1. apply H1.
+Proof.
+  intros p. unfold subset_closed_hyperproperty. intros.
+  apply lifting_preserves_satisfiability.
+  apply lifting_preserves_satisfiability in H. unfold satisfies_property.
+  unfold Included. unfold Included in H0. unfold satisfies_property in H.
+  unfold Included in H. intros x. intros H1. specialize (H0 x).
+  apply H0 in H1. specialize (H x). apply H in H1. apply H1.
 Qed.
 
 Lemma inclusion_preserves_prefix: forall (s:system) (s':system) (m: Obs),
 Included (trace) s s' /\ prefix_set s m -> prefix_set s' m.
-Proof. intros. destruct H. unfold Included in H. unfold prefix_set. intros p.
-unfold prefix_set in H0. specialize (H0 p). intros H1. apply H0 in H1.
-destruct H1. exists x. split.
-- destruct H1. apply H in H1. apply H1.
-- destruct H1. apply H2.
+Proof.
+  intros. destruct H. unfold Included in H. unfold prefix_set. intros p.
+  unfold prefix_set in H0. specialize (H0 p). intros H1. apply H0 in H1.
+  destruct H1. exists x. split.
+  - destruct H1. apply H in H1. apply H1.
+  - destruct H1. apply H2.
 Qed.
 
-(* This proves inclusion but not strict inclusion *)
+(* Theorem 1 in the Hyperproperties paper. *)
+(* Note: This proves inclusion but not strict inclusion *)
 Theorem all_safety_hyperproperties_are_subset_closed:
-forall (hp: hyperproperty), safety_hyperproperty hp -> subset_closed_hyperproperty hp.
-Proof.  intros. unfold safety_hyperproperty in H. unfold subset_closed_hyperproperty. apply NNPP. intros H1. 
-apply not_all_ex_not in H1. destruct H1. apply not_all_ex_not in H0. destruct H0. destruct H0.
-intros. apply NNPP. intros H2. specialize (H x0). apply H in H2. destruct H2. specialize (H2 x). destruct H2.
-pose proof conj H1 H2. apply inclusion_preserves_prefix in H4. apply H3 in H4. contradiction.
+  forall (hp: hyperproperty),
+  safety_hyperproperty hp -> subset_closed_hyperproperty hp.
+Proof.
+  intros. unfold safety_hyperproperty in H. unfold subset_closed_hyperproperty.
+  apply NNPP. intros H1. apply not_all_ex_not in H1. destruct H1.
+  apply not_all_ex_not in H0. destruct H0. destruct H0.
+  intros. apply NNPP. intros H2. specialize (H x0). apply H in H2. destruct H2.
+  specialize (H2 x). destruct H2.
+  pose proof conj H1 H2. apply inclusion_preserves_prefix in H4. apply H3 in H4.
+  contradiction.
 Qed.
-
-
 
 End Hyperproperty.
