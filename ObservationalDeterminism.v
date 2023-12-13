@@ -104,10 +104,14 @@ Lemma neq_Empty_set_gives_element:
 Lemma not_EqSt_pub_gives_index:
   forall (t t': trace), ~ EqSt_pub t t' -> exists (i: nat),
   (Str_nth i t).(public) <> (Str_nth i t').(public).
-Proof. intros. pose proof H.   rewrite EqSt_pub_eq_at_all_index in H.
- apply  not_all_ex_not in H. destruct H. exists x. apply H.
+  Proof.
+    intros. unfold not in H.
+    pose proof eq_at_all_index_EqSt_pub.
+    specialize (H0 t t').
+    apply imply_to_or in H0. destruct H0 as [H0 | H'].
+    + apply not_all_ex_not in H0. apply H0.
+    + apply H in H'. contradiction.
 Qed.
-
 
 Fixpoint build_prefix (i: nat) (t: trace): subtrace :=
   match i with
